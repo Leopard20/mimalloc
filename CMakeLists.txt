@@ -280,15 +280,20 @@ message(STATUS "")
 # Main targets
 # -----------------------------------------------------------------------------
 
+
 # shared library
 if(MI_BUILD_SHARED)
-  add_library(mimalloc SHARED ${mi_sources})
+  set(CMA_DIR ${CMAKE_SOURCE_DIR}/src/cma)
+  file(GLOB cma_sources ${CMA_DIR}/*.cpp)
+  add_library(mimalloc SHARED ${mi_sources} ${cma_sources})
   set_target_properties(mimalloc PROPERTIES VERSION ${mi_version} OUTPUT_NAME ${mi_basename} )
   target_compile_definitions(mimalloc PRIVATE ${mi_defines} MI_SHARED_LIB MI_SHARED_LIB_EXPORT)
   target_compile_options(mimalloc PRIVATE ${mi_cflags})
   target_link_libraries(mimalloc PUBLIC ${mi_libraries})
   target_include_directories(mimalloc PUBLIC
+      
       $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+      $<BUILD_INTERFACE:${CMA_DIR}>
       $<INSTALL_INTERFACE:${mi_install_incdir}>
   )
   if(WIN32)

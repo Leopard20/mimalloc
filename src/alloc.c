@@ -15,9 +15,9 @@ terms of the MIT license. A copy of the license can be found in the file
 #include <string.h>  // memset, strlen
 #include <stdlib.h>  // malloc, exit
 
-#define MI_IN_ALLOC_C
-#include "alloc-override.c"
-#undef MI_IN_ALLOC_C
+// #define MI_IN_ALLOC_C
+// #include "alloc-override.c"
+// #undef MI_IN_ALLOC_C
 
 // ------------------------------------------------------
 // Allocation
