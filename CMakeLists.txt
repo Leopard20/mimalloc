@@ -288,7 +288,7 @@ if(MI_BUILD_SHARED)
   add_library(mimalloc SHARED ${mi_sources} ${cma_sources})
   set_target_properties(mimalloc PROPERTIES VERSION ${mi_version} OUTPUT_NAME ${mi_basename} )
   target_compile_definitions(mimalloc PRIVATE ${mi_defines} MI_SHARED_LIB MI_SHARED_LIB_EXPORT)
-  target_compile_options(mimalloc PRIVATE ${mi_cflags})
+  target_compile_options(mimalloc PRIVATE ${mi_cflags} /MT)
   target_link_libraries(mimalloc PUBLIC ${mi_libraries})
   target_include_directories(mimalloc PUBLIC
       
