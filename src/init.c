@@ -482,7 +482,7 @@ static void mi_detect_cpu_features(void) {
   // nothing
 }
 #endif
-
+#include <cma.h>
 // Initialize the process; called by thread_init or the process loader
 void mi_process_init(void) mi_attr_noexcept {
   // ensure we are called once
@@ -490,6 +490,7 @@ void mi_process_init(void) mi_attr_noexcept {
   _mi_verbose_message("process init: 0x%zx\n", _mi_thread_id());
   _mi_process_is_initialized = true;
   mi_process_setup_auto_thread_done();
+  CmaInit();
 
   
   mi_detect_cpu_features();
