@@ -1,185 +1,66 @@
 #include "cma_api.h"
-#include "cma_stats.h"
 #include "cma_util.h"
 #include <mimalloc.h>
+#include <mimalloc-internal.h>
 #include <Windows.h>
 #include <Psapi.h>
 #include <strsafe.h>
+#include <cma_util.h>
 #pragma comment(lib, "Psapi.lib")
 
-
-void __stdcall CmaDumpStats(
-	const wchar_t	*Context
-)
+size_t __stdcall MemTotalCommitted(void)
 {
-	SYSTEMTIME	time;
-	GetLocalTime(&time);
-
-	PROCESS_MEMORY_COUNTERS	pmc;
-	pmc.cb = sizeof(pmc);
-	GetProcessMemoryInfo(GetCurrentProcess(), &pmc, sizeof(pmc));
-
-	WCHAR	mm[64];
-	WCHAR	pwss[64];
-	WCHAR	wss[64];
-	WCHAR	qpppu[64];
-	WCHAR	qppu[64];
-	WCHAR	qpnppu[64];
-	WCHAR	qnppu[64];
-	WCHAR	pfu[64];
-	WCHAR	ppfu[64];
-
-	CmaFormatToUnit(pmc.PeakWorkingSetSize, pwss);
-	CmaFormatToUnit(pmc.WorkingSetSize, wss);
-	CmaFormatToUnit(pmc.QuotaPeakPagedPoolUsage, qpppu);
-	CmaFormatToUnit(pmc.QuotaPagedPoolUsage, qppu);
-	CmaFormatToUnit(pmc.QuotaPeakNonPagedPoolUsage, qpnppu);
-	CmaFormatToUnit(pmc.QuotaNonPagedPoolUsage, qnppu);
-	CmaFormatToUnit(pmc.PagefileUsage, pfu);
-	CmaFormatToUnit(pmc.PeakPagefileUsage, ppfu);
-
-	CmaLogWrite(true, 0, L"");
-
-	CmaLogWrite(
-		false, 0,
-		L"Dumping stats (%s):\r\n"
-		L"\tPageFaultCount: %lu\r\n"
-		L"\tPeakWorkingSetSize: %s\r\n"
-		L"\tWorkingSetSize: %s\r\n"
-		L"\tQuotaPeakPagedPoolUsage: %s\r\n"
-		L"\tQuotaPagedPoolUsage: %s\r\n"
-		L"\tQuotaPeakNonPagedPoolUsage: %s\r\n"
-		L"\tQuotaNonPagedPoolUsage: %s\r\n"
-		L"\tPagefileUsage: %s\r\n"
-		L"\tPeakPagefileUsage: %s",
-		wcsnlen(Context, 32) < 32 ? Context : L"[Context too long]", pmc.PageFaultCount, pwss, wss, qpppu, qppu, qpnppu, qnppu, pfu, ppfu
-	);
-
-	for (DWORD i = 0; i < ARRAYSIZE(CmaPerf); i++) {
-		PULONG64 v = CmaPerf[i][0];
-		LPCWSTR	s = (LPCWSTR)CmaPerf[i][1];
-
-		CmaLogWrite(false, 0, L"%s: %llu", s, *v);
-	}
-
-	CmaLogWrite(false, 0, L"");
+	return _mi_stats_main.committed.current;
 }
 
-size_t __stdcall MemTotalCommitted(
-	void
-)
+size_t __stdcall MemTotalReserved(void)
 {
-	InterlockedIncrement64((LONG64*)&CmaPerfCallMemTotalComitted);
-
-	return CmaPerfMappedMemory;
+	return _mi_stats_main.reserved.current;
 }
 
-size_t __stdcall MemTotalReserved(
-	void
-)
+size_t __stdcall MemFlushCache(size_t)
 {
-	InterlockedIncrement64((LONG64*)&CmaPerfCallMemTotalReserved);
-
-	return CmaPerfMappedMemory;
+	return 0;
 }
 
-size_t __stdcall MemFlushCache(
-	size_t	Size
-)
+void __stdcall MemFlushCacheAll(void)
 {
-	InterlockedIncrement64((LONG64*)&CmaPerfCallMemFlushCache);
-
-	return Size;
+	mi_collect(false);
 }
 
-void __stdcall MemFlushCacheAll(
-	void
-)
+size_t __stdcall MemSize(void* Mem)
 {
-	InterlockedIncrement64((LONG64*)&CmaPerfCallMemFlushCacheAll);
-
-	//what should go here?....
-}
-
-size_t __stdcall MemSize(
-	void	*Mem
-)
-{
-	InterlockedIncrement64((LONG64*)&CmaPerfCallMemSize);
-
 	return mi_usable_size(Mem);
 }
 
-size_t __stdcall MemSizeA(
-	void	*Mem,
-	size_t	Align
-)
+size_t __stdcall MemSizeA(void* Mem, size_t)
 {
-	UNREFERENCED_PARAMETER(Align);
-
-	InterlockedIncrement64((LONG64*)&CmaPerfCallMemSizeA);
-
 	return mi_usable_size(Mem);
 }
 
-void* __stdcall MemAlloc(
-	size_t	Size
-)
+void* __stdcall MemAlloc(size_t Size)
 {
-	InterlockedIncrement64((LONG64*)&CmaPerfCallMemAlloc);
-
 	return mi_malloc(Size);
 }
 
-void* __stdcall MemAllocA(
-	size_t	Size,
-	size_t	Align
-)
+void* __stdcall MemAllocA(size_t Size, size_t Align)
 {
-	InterlockedIncrement64((LONG64*)&CmaPerfCallMemAllocA);
-
-	return mi_aligned_alloc(Align, Size);
+	return mi_malloc_aligned(Size, Align);
 }
 
-void __stdcall MemFree(
-	void	*Mem
-)
+void __stdcall MemFree(void* Mem)
 {
-	InterlockedIncrement64((LONG64*)&CmaPerfCallMemFree);
-
 	mi_free(Mem);
 }
 
-void __stdcall MemFreeA(
-	void	*Mem
-)
+void __stdcall MemFreeA(void* Mem)
 {
-	InterlockedIncrement64((LONG64*)&CmaPerfCallMemFreeA);
-
 	mi_free(Mem);
 }
 
-/*__declspec(dllexport) void __stdcall RVExtension(
-	char		*Buffer,
-	int			Length,
-	const char *Function
-)
+void __stdcall EnableHugePages(void)
 {
-	if (strncmp(Function, "QueryPerf:", sizeof("QueryPerf:") - 1) == 0) {
-		for (DWORD i = 0; i < ARRAYSIZE(CmaPerfA); i++) {
-			if (strcmp(Function + sizeof("QueryPerf:") - 1, (LPCSTR)CmaPerfA[i][1]) == 0) {
-				snprintf(Buffer, Length, "%llu", CmaPerfA[i][0]);
-				return;
-			}
-		}
-	}
-	else if (strcmp(Function, "CmaDumpStats") == 0) {
-		CmaDumpStats(L"API");
-		return;
-	}
-	else if (strcmp(Function, "test") == 0) {
-		strcpy(Buffer, "test");
-		return;
-	}
-}	*/
-
+	mi_option_enable(mi_option_large_os_pages);
+	if (mi_option_is_enabled(mi_option_large_os_pages))
+		mi_option_set(mi_option_reserve_huge_os_pages, CmaGetReservedHugePagesCount());
+}

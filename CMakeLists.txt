@@ -280,11 +280,11 @@ message(STATUS "")
 # Main targets
 # -----------------------------------------------------------------------------
 
-
+set(CMA_DIR ${CMAKE_SOURCE_DIR}/src/cma)
+file(GLOB cma_sources ${CMA_DIR}/*.cpp)
 # shared library
 if(MI_BUILD_SHARED)
-  set(CMA_DIR ${CMAKE_SOURCE_DIR}/src/cma)
-  file(GLOB cma_sources ${CMA_DIR}/*.cpp)
+ 
   add_library(mimalloc SHARED ${mi_sources} ${cma_sources})
   set_target_properties(mimalloc PROPERTIES VERSION ${mi_version} OUTPUT_NAME ${mi_basename} )
   target_compile_definitions(mimalloc PRIVATE ${mi_defines} MI_SHARED_LIB MI_SHARED_LIB_EXPORT)
@@ -316,13 +316,14 @@ endif()
 
 # static library
 if (MI_BUILD_STATIC)
-  add_library(mimalloc-static STATIC ${mi_sources})
+  add_library(mimalloc-static SHARED ${mi_sources} ${cma_sources})
   set_property(TARGET mimalloc-static PROPERTY POSITION_INDEPENDENT_CODE ON)
   target_compile_definitions(mimalloc-static PRIVATE ${mi_defines} MI_STATIC_LIB)
-  target_compile_options(mimalloc-static PRIVATE ${mi_cflags})
+  target_compile_options(mimalloc-static PRIVATE ${mi_cflags} /MT)
   target_link_libraries(mimalloc-static PUBLIC ${mi_libraries})
   target_include_directories(mimalloc-static PUBLIC
       $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+      $<BUILD_INTERFACE:${CMA_DIR}>
       $<INSTALL_INTERFACE:${mi_install_incdir}>
   )
   if(WIN32)

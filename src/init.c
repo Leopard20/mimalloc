@@ -444,7 +444,7 @@ static void mi_allocator_done(void) {
   // nothing to do
 }
 #endif
-#include <cma.h>
+
 // Called once by the process loader
 static void mi_process_load(void) {
   mi_heap_main_init();
@@ -492,7 +492,6 @@ void mi_process_init(void) mi_attr_noexcept {
   mi_process_setup_auto_thread_done();
  
   mi_detect_cpu_features();
-  CmaInit();
   _mi_os_init();
   mi_heap_main_init();
   #if (MI_DEBUG)
@@ -546,11 +545,7 @@ static void mi_process_done(void) {
   mi_allocator_done();  
   _mi_verbose_message("process done: 0x%zx\n", _mi_heap_main.thread_id);
   os_preloading = true; // don't call the C runtime anymore
-
-  CmaExit();
 }
-
-
 
 #if defined(_WIN32) && defined(MI_SHARED_LIB)
   // Windows DLL: easy to hook into process_init and thread_done
