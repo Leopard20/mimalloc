@@ -454,6 +454,11 @@ static void mi_process_load(void) {
   #endif
   os_preloading = false;
   atexit(&mi_process_done);
+
+  mi_option_disable(mi_option_show_stats);
+  mi_option_disable(mi_option_verbose);
+  mi_option_disable(mi_option_show_errors);
+
   _mi_options_init();
   mi_process_init();
   //mi_stats_reset();-

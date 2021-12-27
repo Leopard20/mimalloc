@@ -2,11 +2,7 @@
 #include "cma_util.h"
 #include <mimalloc.h>
 #include <mimalloc-internal.h>
-#include <Windows.h>
-#include <Psapi.h>
-#include <strsafe.h>
 #include <cma_util.h>
-#pragma comment(lib, "Psapi.lib")
 
 size_t __stdcall MemTotalCommitted(void)
 {
@@ -20,12 +16,15 @@ size_t __stdcall MemTotalReserved(void)
 
 size_t __stdcall MemFlushCache(size_t)
 {
-	return 0;
+	size_t before = _mi_stats_main.committed.current;
+	mi_collect(false);
+	size_t after = _mi_stats_main.committed.current;
+	return before > after ? before - after : 0;
 }
 
 void __stdcall MemFlushCacheAll(void)
 {
-	mi_collect(false);
+	mi_collect(true);
 }
 
 size_t __stdcall MemSize(void* Mem)
@@ -61,6 +60,7 @@ void __stdcall MemFreeA(void* Mem)
 void __stdcall EnableHugePages(void)
 {
 	mi_option_enable(mi_option_large_os_pages);
-	if (mi_option_is_enabled(mi_option_large_os_pages))
+	if (mi_option_is_enabled(mi_option_large_os_pages)) {
 		mi_option_set(mi_option_reserve_huge_os_pages, CmaGetReservedHugePagesCount());
+	}
 }
